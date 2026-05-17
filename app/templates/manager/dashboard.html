@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manager Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h1 class="text-2xl font-bold text-blue-600">Welcome, {{ user.name }}</h1>
+        <p class="text-gray-500">Manager Dashboard</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <p class="text-3xl font-bold text-blue-600">{{ team|length }}</p>
+            <p class="text-gray-500 mt-1">Team Members</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <p class="text-3xl font-bold text-yellow-500">{{ pending_count }}</p>
+            <p class="text-gray-500 mt-1">Pending Approvals</p>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="font-semibold text-lg mb-4">Quick Actions</h2>
+        <div class="flex gap-4">
+            <a href="/manager/approve" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                Approve Goals {% if pending_count > 0 %}({{ pending_count }}){% endif %}
+            </a>
+            <a href="/manager/team" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                View Team
+            </a>
+            <a href="/manager/checkin" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Check-ins
+            </a>
+            <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                Logout
+            </a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

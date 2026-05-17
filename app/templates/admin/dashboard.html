@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h1 class="text-2xl font-bold text-blue-600">Welcome, {{ user.name }}</h1>
+            <p class="text-gray-500 mt-1">Admin Dashboard</p>
+            <div class="mt-6 flex gap-4">
+                <a href="/admin/audit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Audit Trail</a>
+                <a href="/admin/export" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export Report</a>
+                <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quarterly Check-in</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-4xl mx-auto">
+
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-blue-600">Quarterly Check-in</h1>
+            <p class="text-gray-500">{{ user.name }}</p>
+        </div>
+        <a href="/employee/dashboard" class="bg-gray-200 px-4 py-2 rounded">Back</a>
+    </div>
+
+    {% if not goals %}
+    <div class="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+        No approved goals yet. Goals must be approved by your manager before check-in.
+    </div>
+    {% else %}
+    {% for goal in goals %}
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+        <div class="flex justify-between mb-3">
+            <div>
+                <h2 class="font-semibold text-lg">{{ goal.title }}</h2>
+                <p class="text-sm text-gray-500">Target: {{ goal.target }} | UoM: {{ goal.uom_type }} | Weightage: {{ goal.weightage }}%</p>
+            </div>
+        </div>
+        <form method="POST" action="/employee/checkin/save">
+            <input type="hidden" name="goal_id" value="{{ goal.id }}">
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Quarter</label>
+                    <select name="quarter" class="w-full border rounded px-3 py-2">
+                        {% for q in quarters %}
+                        <option value="{{ q }}">{{ q }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Actual Achievement</label>
+                    <input type="number" name="actual" step="0.01" required
+                        class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select name="status" class="w-full border rounded px-3 py-2">
+                        <option value="not_started">Not Started</option>
+                        <option value="on_track">On Track</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                Save Check-in
+            </button>
+        </form>
+
+        <!-- Show past achievements -->
+        {% if goal.achievements %}
+        <div class="mt-4 border-t pt-3">
+            <p class="text-sm font-medium mb-2">Past Check-ins:</p>
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="p-2 text-left">Quarter</th>
+                        <th class="p-2 text-left">Actual</th>
+                        <th class="p-2 text-left">Score</th>
+                        <th class="p-2 text-left">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in goal.achievements %}
+                    <tr class="border-t">
+                        <td class="p-2">{{ a.quarter }}</td>
+                        <td class="p-2">{{ a.actual }}</td>
+                        <td class="p-2">{{ (a.score * 100)|round(1) }}%</td>
+                        <td class="p-2">{{ a.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+</div>
+</body>
+</html>

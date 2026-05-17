@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Goals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-5xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-blue-600">My Goals</h1>
+            <p class="text-gray-500">{{ user.name }}</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="/employee/dashboard" class="bg-gray-200 px-4 py-2 rounded">Back</a>
+            <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded">Logout</a>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    {% if error %}
+    <div class="bg-red-100 text-red-600 p-3 rounded mb-4">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="bg-green-100 text-green-600 p-3 rounded mb-4">{{ success }}</div>
+    {% endif %}
+
+    <!-- Weightage Bar -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="flex justify-between mb-1">
+            <span class="text-sm font-medium">Total Weightage</span>
+            <span class="text-sm font-bold {% if total_weightage == 100 %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ total_weightage }}%
+            </span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="h-3 rounded-full {% if total_weightage == 100 %}bg-green-500{% else %}bg-blue-500{% endif %}"
+                 style="width: {{ [total_weightage, 100]|min }}%"></div>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Must reach exactly 100% before submitting</p>
+    </div>
+
+    <!-- Add Goal Form -->
+    {% set has_draft = goals|selectattr("status", "equalto", "draft")|list|length > 0 or goals|length == 0 %}
+    {% set all_locked = goals|length > 0 and goals|selectattr("status", "ne", "draft")|list|length == goals|length %}
+
+    {% if not all_locked %}
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Add New Goal</h2>
+        <form method="POST" action="/employee/goals/add">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Goal Title</label>
+                    <input type="text" name="title" required
+                        class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. Increase Sales Revenue">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Thrust Area</label>
+                    <input type="text" name="thrust_area" required
+                        class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. Revenue, Cost, Quality">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Unit of Measurement</label>
+                    <select name="uom_type" class="w-full border rounded px-3 py-2">
+                        <option value="min">Numeric/% (Higher is better)</option>
+                        <option value="max">Numeric/% (Lower is better)</option>
+                        <option value="timeline">Timeline (Date based)</option>
+                        <option value="zero">Zero based (Zero = Success)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Target</label>
+                    <input type="number" name="target" step="0.01" required
+                        class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. 100">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Weightage (%)</label>
+                    <input type="number" name="weightage" min="10" max="100" required
+                        class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. 30">
+                </div>
+            </div>
+            <button type="submit" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                Add Goal
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Goals List -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">My Goals ({{ goals|length }}/8)</h2>
+        {% if goals %}
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-left">
+                    <th class="p-3">Title</th>
+                    <th class="p-3">Thrust Area</th>
+                    <th class="p-3">UoM</th>
+                    <th class="p-3">Target</th>
+                    <th class="p-3">Weightage</th>
+                    <th class="p-3">Status</th>
+                    <th class="p-3">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for goal in goals %}
+                <tr class="border-t">
+                    <td class="p-3">{{ goal.title }}</td>
+                    <td class="p-3">{{ goal.thrust_area }}</td>
+                    <td class="p-3">{{ goal.uom_type }}</td>
+                    <td class="p-3">{{ goal.target }}</td>
+                    <td class="p-3">{{ goal.weightage }}%</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-xs font-medium
+                            {% if goal.status == 'draft' %}bg-yellow-100 text-yellow-700
+                            {% elif goal.status == 'submitted' %}bg-blue-100 text-blue-700
+                            {% elif goal.status == 'locked' %}bg-green-100 text-green-700
+                            {% endif %}">
+                            {{ goal.status }}
+                        </span>
+                        {% if rework_comments.get(goal.id) %}
+                        <p class="text-xs text-orange-600 mt-1">💬 Manager: {{ rework_comments[goal.id] }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="p-3">
+                        {% if goal.status == 'draft' %}
+                        <form method="POST" action="/employee/goals/delete/{{ goal.id }}">
+                            <button type="submit" class="text-red-500 hover:underline text-xs">Delete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-gray-500 text-center py-4">No goals yet. Add your first goal above.</p>
+        {% endif %}
+    </div>
+
+    <form method="POST" action="/employee/goals/reset">
+    <button type="submit" class="bg-gray-500 text-white px-4 py-2 rounded text-sm">
+        Reset to Draft (Testing Only)
+    </button>
+</form>
+
+    <!-- Submit Button -->
+    {% if goals|selectattr("status", "equalto", "draft")|list|length > 0 %}
+<form method="POST" action="/employee/goals/submit">
+
+    {% if rework_comments %}
+    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-3">
+        <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" name="acknowledged" value="yes"
+                class="mt-1"
+                id="ack-checkbox"
+                onchange="document.getElementById('submit-btn').disabled = !this.checked">
+            <span class="text-sm text-orange-700">
+                I have read the manager's feedback and made the necessary changes before resubmitting.
+            </span>
+        </label>
+    </div>
+    <button type="submit" id="submit-btn" disabled
+        class="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed">
+        Submit Goals for Manager Approval
+    </button>
+    {% else %}
+    <button type="submit" id="submit-btn"
+        class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
+        Submit Goals for Manager Approval
+    </button>
+    {% endif %}
+
+</form>
+{% endif %}
+
+</div>
+</body>
+</html>

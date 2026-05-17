@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Approve Goals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-5xl mx-auto">
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-blue-600">Pending Approvals</h1>
+        <a href="/manager/dashboard" class="bg-gray-200 px-4 py-2 rounded">Back</a>
+    </div>
+
+    {% if not employee_sheets %}
+    <div class="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+        No pending goal sheets to approve.
+    </div>
+    {% endif %}
+
+    {% for sheet in employee_sheets %}
+    <div class="bg-white rounded-lg shadow p-6 mb-6" id="sheet-{{ sheet.employee.id }}">
+
+        <!-- Employee Header + Live Total -->
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h2 class="text-lg font-bold">{{ sheet.employee.name }}</h2>
+                <p class="text-sm text-gray-500">{{ sheet.goals|length }} goals submitted</p>
+            </div>
+            <div class="text-right">
+                <span class="text-3xl font-bold" id="total-{{ sheet.employee.id }}">{{ sheet.total }}</span>
+                <span class="text-lg font-bold" id="total-pct-{{ sheet.employee.id }}">%</span>
+                <p class="text-xs text-gray-500">Total Weightage</p>
+                <p class="text-xs" id="total-msg-{{ sheet.employee.id }}"></p>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-200 rounded-full h-3 mb-5">
+            <div class="h-3 rounded-full transition-all duration-200"
+                 id="bar-{{ sheet.employee.id }}"
+                 style="width: {{ [sheet.total, 100]|min }}%">
+            </div>
+        </div>
+
+        <!-- Goals Table -->
+        <table class="w-full text-sm mb-4">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="p-3 text-left">Goal</th>
+                    <th class="p-3 text-left">Thrust Area</th>
+                    <th class="p-3 text-left">UoM</th>
+                    <th class="p-3 text-left w-28">Target</th>
+                    <th class="p-3 text-left w-28">Weightage %</th>
+                </tr>
+            </thead>
+            <tbody id="goals-{{ sheet.employee.id }}">
+                {% for goal in sheet.goals %}
+                <tr class="border-t" data-goal-id="{{ goal.id }}">
+                    <td class="p-3">{{ goal.title }}</td>
+                    <td class="p-3">{{ goal.thrust_area }}</td>
+                    <td class="p-3">{{ goal.uom_type }}</td>
+                    <td class="p-3">
+                        <input type="number" step="0.01"
+                            class="target-input w-24 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            value="{{ goal.target }}"
+                            data-goal-id="{{ goal.id }}">
+                    </td>
+                    <td class="p-3">
+                        <input type="number" step="0.1" min="10" max="100"
+                            class="weightage-input w-20 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            value="{{ goal.weightage }}"
+                            data-employee-id="{{ sheet.employee.id }}"
+                            data-goal-id="{{ goal.id }}">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Comment + Actions -->
+        <div class="border-t pt-4">
+            <label class="block text-sm font-medium mb-1">Manager Comment</label>
+            <textarea id="comment-{{ sheet.employee.id }}"
+                placeholder="Optional: explain any changes made, or leave feedback..."
+                class="w-full border rounded px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                rows="2"></textarea>
+
+            <div class="flex gap-3 items-center">
+                <button
+                    id="approve-btn-{{ sheet.employee.id }}"
+                    onclick="approveSheet({{ sheet.employee.id }})"
+                    class="px-6 py-2 rounded font-medium bg-gray-300 text-gray-500 cursor-not-allowed transition-colors"
+                    disabled>
+                    ✓ Approve All & Lock
+                </button>
+                <button
+                    onclick="rejectSheet({{ sheet.employee.id }})"
+                    class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 font-medium">
+                    ✗ Return for Rework
+                </button>
+                <span id="action-msg-{{ sheet.employee.id }}" class="text-sm"></span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+
+<script>
+// On page load, set correct bar colors
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[id^="total-"]').forEach(el => {
+        const empId = el.id.replace('total-', '');
+        if (!empId.includes('pct') && !empId.includes('msg')) {
+            updateBar(empId);
+        }
+    });
+});
+
+// Live update when weightage is typed
+document.querySelectorAll('.weightage-input').forEach(input => {
+    input.addEventListener('input', () => {
+        const empId = input.dataset.employeeId;
+        updateBar(empId);
+    });
+});
+
+function getTotal(empId) {
+    const inputs = document.querySelectorAll(`.weightage-input[data-employee-id="${empId}"]`);
+    let total = 0;
+    inputs.forEach(inp => total += parseFloat(inp.value) || 0);
+    return Math.round(total * 10) / 10;
+}
+
+function updateBar(empId) {
+    const total = getTotal(empId);
+    const bar = document.getElementById(`bar-${empId}`);
+    const totalEl = document.getElementById(`total-${empId}`);
+    const msgEl = document.getElementById(`total-msg-${empId}`);
+    const btn = document.getElementById(`approve-btn-${empId}`);
+
+    totalEl.textContent = total;
+    bar.style.width = Math.min(total, 100) + '%';
+
+    if (Math.round(total) === 100) {
+        bar.className = 'h-3 rounded-full transition-all duration-200 bg-green-500';
+        totalEl.className = 'text-3xl font-bold text-green-600';
+        msgEl.textContent = '✓ Ready to approve';
+        msgEl.className = 'text-xs text-green-600';
+        btn.disabled = false;
+        btn.className = 'px-6 py-2 rounded font-medium bg-green-600 text-white hover:bg-green-700 transition-colors cursor-pointer';
+    } else if (total > 100) {
+        bar.className = 'h-3 rounded-full transition-all duration-200 bg-red-500';
+        totalEl.className = 'text-3xl font-bold text-red-600';
+        msgEl.textContent = `Exceeds 100% — reduce by ${(total - 100).toFixed(1)}%`;
+        msgEl.className = 'text-xs text-red-500';
+        btn.disabled = true;
+        btn.className = 'px-6 py-2 rounded font-medium bg-gray-300 text-gray-500 cursor-not-allowed transition-colors';
+    } else {
+        bar.className = 'h-3 rounded-full transition-all duration-200 bg-blue-400';
+        totalEl.className = 'text-3xl font-bold text-yellow-600';
+        msgEl.textContent = `${(100 - total).toFixed(1)}% remaining`;
+        msgEl.className = 'text-xs text-yellow-600';
+        btn.disabled = true;
+        btn.className = 'px-6 py-2 rounded font-medium bg-gray-300 text-gray-500 cursor-not-allowed transition-colors';
+    }
+}
+
+async function approveSheet(empId) {
+    const goalsData = [];
+    const rows = document.querySelectorAll(`#goals-${empId} tr[data-goal-id]`);
+    rows.forEach(row => {
+        const gid = row.dataset.goalId;
+        const target = row.querySelector('.target-input').value;
+        const weightage = row.querySelector('.weightage-input').value;
+        goalsData.push({ id: gid, target, weightage });
+    });
+    const comment = document.getElementById(`comment-${empId}`).value;
+    const msgEl = document.getElementById(`action-msg-${empId}`);
+
+    const res = await fetch(`/manager/approve-sheet-final/${empId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goals: goalsData, comment })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+        document.getElementById(`sheet-${empId}`).innerHTML =
+            `<div class="p-6 text-center text-green-600 font-semibold">✓ Goal sheet approved and locked.</div>`;
+    } else {
+        msgEl.textContent = data.error;
+        msgEl.className = 'text-sm text-red-500';
+    }
+}
+
+async function rejectSheet(empId) {
+    const comment = document.getElementById(`comment-${empId}`).value.trim();
+    const msgEl = document.getElementById(`action-msg-${empId}`);
+
+    if (!comment) {
+        msgEl.textContent = 'Please add a comment before returning for rework.';
+        msgEl.className = 'text-sm text-red-500';
+        document.getElementById(`comment-${empId}`).focus();
+        return;
+    }
+
+    const res = await fetch(`/manager/reject-sheet/${empId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+        document.getElementById(`sheet-${empId}`).innerHTML =
+            `<div class="p-6 text-center text-yellow-600 font-semibold">Sheet returned for rework. Employee will see your comment.</div>`;
+    } else {
+        msgEl.textContent = data.error;
+        msgEl.className = 'text-sm text-red-500';
+    }
+}
+</script>
+</body>
+</html>
