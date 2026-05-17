@@ -1,63 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-8">
-<div class="max-w-5xl mx-auto">
-
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h1 class="text-2xl font-bold text-blue-600">Admin Dashboard</h1>
-        <p class="text-gray-500">Welcome, {{ user.name }}</p>
-    </div>
-
-    <!-- Stats -->
-    <div class="grid grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-6 text-center">
-            <p class="text-3xl font-bold text-blue-600">{{ stats.total_employees }}</p>
-            <p class="text-gray-500 mt-1 text-sm">Total Employees</p>
-        </div>
-        <div class="bg-white rounded-lg shadow p-6 text-center">
-            <p class="text-3xl font-bold text-gray-400">{{ stats.not_started }}</p>
-            <p class="text-gray-500 mt-1 text-sm">Not Started</p>
-        </div>
-        <div class="bg-white rounded-lg shadow p-6 text-center">
-            <p class="text-3xl font-bold text-yellow-500">{{ stats.submitted }}</p>
-            <p class="text-gray-500 mt-1 text-sm">Pending Approval</p>
-        </div>
-        <div class="bg-white rounded-lg shadow p-6 text-center">
-            <p class="text-3xl font-bold text-green-600">{{ stats.approved }}</p>
-            <p class="text-gray-500 mt-1 text-sm">Approved & Locked</p>
-        </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="font-semibold text-lg mb-4">Quick Actions</h2>
-        <div class="flex gap-4">
-            <a href="/admin/employees" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                View All Employees
-            </a>
-            <a href="/admin/audit" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                Audit Trail
-            </a>
-            <a href="/admin/export" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                Export CSV
-            </a>
-            <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                Logout
-            </a>
-        </div>
-    </div>
-
-</div>
-</body>
-</html>
-
-<!DOCTYPE html>
-<html>
-<head>
     <title>All Employees</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
