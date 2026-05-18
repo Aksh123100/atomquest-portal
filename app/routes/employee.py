@@ -1,9 +1,11 @@
+
+
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Goal, Achievement, CheckIn
+from app.models import Goal, Achievement, CheckIn, CheckInWindow
 from app.auth import require_employee
 from app.services.goal_service import validate_goals, get_employee_goals, calculate_score
 
@@ -168,10 +170,14 @@ def checkin_page(request: Request, user=Depends(require_employee), db: Session =
         Goal.employee_id == user.id,
         Goal.status == "locked"
     ).all()
+    open_quarters = [
+        w.quarter for w in db.query(CheckInWindow).filter(CheckInWindow.is_open == True).all()
+    ]
     return templates.TemplateResponse(request, "employee/checkin.html", {
         "user": user,
         "goals": goals,
-        "quarters": ["Q1", "Q2", "Q3", "Q4"]
+        "quarters": ["Q1", "Q2", "Q3", "Q4"],
+        "open_quarters": open_quarters
     })
 
 
@@ -188,6 +194,15 @@ def save_checkin(
     goal = db.query(Goal).filter(Goal.id == goal_id, Goal.employee_id == user.id).first()
     if not goal or goal.status != "locked":
         return RedirectResponse(url="/employee/checkin", status_code=302)
+    
+
+    # Check window BEFORE saving anything
+    window = db.query(CheckInWindow).filter(
+        CheckInWindow.quarter == quarter,
+        CheckInWindow.is_open == True
+    ).first()
+    if not window:
+        return RedirectResponse(url="/employee/checkin?error=Check-in window for " + quarter + " is not open", status_code=302)
 
     achievement = db.query(Achievement).filter(
         Achievement.goal_id == goal_id,

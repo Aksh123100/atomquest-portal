@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check-in Windows</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-3xl mx-auto">
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-blue-600">Quarterly Check-in Windows</h1>
+        <a href="/admin/dashboard" class="bg-gray-200 px-4 py-2 rounded">Back</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <p class="text-sm text-gray-500 mb-6">
+            Only employees whose quarter window is open can submit check-ins.
+            Toggle to open or close each quarter.
+        </p>
+
+        <div class="space-y-4">
+            {% for quarter in quarters %}
+            {% set window = windows.get(quarter) %}
+            {% set is_open = window.is_open if window else false %}
+            <div class="flex items-center justify-between p-4 border rounded-lg
+                {% if is_open %}border-green-300 bg-green-50{% else %}border-gray-200{% endif %}">
+                <div>
+                    <p class="font-semibold text-lg">{{ quarter }}</p>
+                    <p class="text-sm text-gray-500">
+                        {% if is_open %}
+                            Opened — employees can submit check-ins
+                        {% else %}
+                            Closed — check-ins not accepted
+                        {% endif %}
+                    </p>
+                    {% if window and window.updated_at %}
+                    <p class="text-xs text-gray-400 mt-1">
+                        Last updated: {{ window.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                    </p>
+                    {% endif %}
+                </div>
+                <form method="POST" action="/admin/checkin-windows/toggle/{{ quarter }}">
+                    <button type="submit"
+                        class="px-5 py-2 rounded font-medium text-sm
+                        {% if is_open %}bg-red-500 text-white hover:bg-red-600
+                        {% else %}bg-green-600 text-white hover:bg-green-700{% endif %}">
+                        {% if is_open %}Close{% else %}Open{% endif %}
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

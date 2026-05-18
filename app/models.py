@@ -74,3 +74,12 @@ class AuditLog(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     goal = relationship("Goal", back_populates="audit_logs")
+
+class CheckInWindow(Base):
+    __tablename__ = "checkin_windows"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quarter = Column(String, nullable=False)  # Q1 / Q2 / Q3 / Q4
+    is_open = Column(Boolean, default=False)
+    opened_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow)

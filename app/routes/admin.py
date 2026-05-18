@@ -3,10 +3,11 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Goal, User, AuditLog, Achievement, CheckIn
+from app.models import Goal, User, AuditLog, Achievement, CheckIn, CheckInWindow
 from app.auth import require_admin
 import csv
 import io
+from datetime import datetime
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -127,3 +128,28 @@ def export_csv(user=Depends(require_admin), db: Session = Depends(get_db)):
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=atomquest_report.csv"}
     )
+
+
+# ── Check-in Windows ──────────────────────────────────────
+
+@router.get("/checkin-windows")
+def checkin_windows(request: Request, user=Depends(require_admin), db: Session = Depends(get_db)):
+    quarters = ["Q1", "Q2", "Q3", "Q4"]
+    windows = {w.quarter: w for w in db.query(CheckInWindow).all()}
+    return templates.TemplateResponse(request, "admin/checkin_windows.html", {
+        "user": user,
+        "quarters": quarters,
+        "windows": windows
+    })
+
+@router.post("/checkin-windows/toggle/{quarter}")
+def toggle_window(quarter: str, user=Depends(require_admin), db: Session = Depends(get_db)):
+    window = db.query(CheckInWindow).filter(CheckInWindow.quarter == quarter).first()
+    if window:
+        window.is_open = not window.is_open
+        window.updated_at = datetime.utcnow()
+        window.opened_by = user.id
+    else:
+        db.add(CheckInWindow(quarter=quarter, is_open=True, opened_by=user.id))
+    db.commit()
+    return RedirectResponse(url="/admin/checkin-windows", status_code=302)
