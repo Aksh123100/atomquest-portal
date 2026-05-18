@@ -8,11 +8,9 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./atomquest.db")
 
-# Create the engine - this is the actual connection ot SQLite file
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+# Support both SQLite and PostgreSQL
+args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, connect_args=args)
 
 # Each request gets its own session - like a transcation
 Sessionlocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
