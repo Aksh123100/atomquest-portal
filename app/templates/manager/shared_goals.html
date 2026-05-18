@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Push Shared KPI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-5xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-blue-600">Push Shared KPI</h1>
+        <a href="/manager/dashboard" class="bg-gray-200 px-4 py-2 rounded">Back</a>
+    </div>
+
+    {% if error %}
+    <div class="bg-red-100 text-red-700 p-3 rounded mb-4">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="bg-green-100 text-green-700 p-3 rounded mb-4">{{ success }}</div>
+    {% endif %}
+    {% if not goal_setting_open %}
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded mb-4 text-sm">
+        Shared goals can be created only in the goal-setting window (May-June).
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="POST" action="/manager/shared-goals/create" class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Primary Owner</label>
+                <select name="owner_id" class="w-full border rounded px-3 py-2" required>
+                    {% for employee in team %}
+                    <option value="{{ employee.id }}">{{ employee.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Recipients (select multiple)</label>
+                <select name="recipient_ids" multiple class="w-full border rounded px-3 py-2 h-32" required>
+                    {% for employee in team %}
+                    <option value="{{ employee.id }}">{{ employee.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Goal Title</label>
+                <input type="text" name="title" required class="w-full border rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Thrust Area</label>
+                <input type="text" name="thrust_area" required class="w-full border rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">UoM</label>
+                <select name="uom_type" class="w-full border rounded px-3 py-2" required>
+                    <option value="min">Numeric/% (Higher is better)</option>
+                    <option value="max">Numeric/% (Lower is better)</option>
+                    <option value="timeline">Timeline</option>
+                    <option value="zero">Zero based</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Target</label>
+                <input type="number" step="0.01" name="target" required class="w-full border rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Primary Owner Weightage (%)</label>
+                <input type="number" step="0.1" min="10" max="100" name="owner_weightage" required class="w-full border rounded px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Recipient Weightage (%)</label>
+                <input type="number" step="0.1" min="10" max="100" name="recipient_weightage" required class="w-full border rounded px-3 py-2">
+            </div>
+            <div class="col-span-2">
+                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700" {% if not goal_setting_open %}disabled{% endif %}>
+                    Create Shared KPI
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>

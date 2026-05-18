@@ -10,9 +10,12 @@
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <h1 class="text-2xl font-bold text-blue-600">Admin Dashboard</h1>
         <p class="text-gray-500">Welcome, {{ user.name }}</p>
+        <p class="text-sm mt-2 {% if goal_setting_open %}text-green-700{% else %}text-indigo-700{% endif %}">
+            Active cycle:
+            {% if goal_setting_open %}Goal Setting (May-June){% else %}{{ current_quarter or 'Check-in Phase' }}{% endif %}
+        </p>
     </div>
 
-    <!-- Stats -->
     <div class="grid grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-6 text-center">
             <p class="text-3xl font-bold text-blue-600">{{ stats.total_employees }}</p>
@@ -32,106 +35,18 @@
         </div>
     </div>
 
-    <!-- Actions -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="font-semibold text-lg mb-4">Quick Actions</h2>
-        <div class="flex gap-4">
-            <a href="/admin/employees" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                View All Employees
-            </a>
-            <a href="/admin/audit" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                Audit Trail
-            </a>
-            <a href="/admin/checkin-windows" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                Check-in Windows
-            </a>
-            <a href="/admin/export" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                Export CSV
-            </a>
-            <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                Logout
-            </a>
-        </div>
-    </div>
-
-</div>
-</body>
-</html>
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>All Employees</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-8">
-<div class="max-w-6xl mx-auto">
-
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-blue-600">All Employees & Goals</h1>
-        <div class="flex gap-3">
+        <div class="flex gap-3 flex-wrap">
+            <a href="/admin/employees" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">View All Employees</a>
+            <a href="/admin/shared-goals" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Push Shared KPI</a>
+            <a href="/admin/completion" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">Completion Dashboard</a>
+            <a href="/admin/audit" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Audit Trail</a>
+            <a href="/admin/checkin-windows" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Check-in Windows</a>
             <a href="/admin/export" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export CSV</a>
-            <a href="/admin/dashboard" class="bg-gray-200 px-4 py-2 rounded">Back</a>
+            <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</a>
         </div>
     </div>
-
-    {% for item in employee_data %}
-    <div class="bg-white rounded-lg shadow p-6 mb-4">
-        <div class="flex justify-between items-center mb-3">
-            <div>
-                <h2 class="font-semibold text-lg">{{ item.employee.name }}</h2>
-                <p class="text-sm text-gray-500">{{ item.employee.email }}</p>
-            </div>
-            <span class="text-sm text-gray-500">{{ item.goals|length }} goals</span>
-        </div>
-
-        {% if item.goals %}
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="bg-gray-50">
-                    <th class="p-2 text-left">Goal</th>
-                    <th class="p-2 text-left">Thrust Area</th>
-                    <th class="p-2 text-left">Target</th>
-                    <th class="p-2 text-left">Weightage</th>
-                    <th class="p-2 text-left">Status</th>
-                    <th class="p-2 text-left">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for goal in item.goals %}
-                <tr class="border-t">
-                    <td class="p-2">{{ goal.title }}</td>
-                    <td class="p-2">{{ goal.thrust_area }}</td>
-                    <td class="p-2">{{ goal.target }}</td>
-                    <td class="p-2">{{ goal.weightage }}%</td>
-                    <td class="p-2">
-                        <span class="px-2 py-1 rounded text-xs font-medium
-                            {% if goal.status == 'draft' %}bg-yellow-100 text-yellow-700
-                            {% elif goal.status == 'submitted' %}bg-blue-100 text-blue-700
-                            {% elif goal.status == 'locked' %}bg-green-100 text-green-700
-                            {% endif %}">
-                            {{ goal.status }}
-                        </span>
-                    </td>
-                    <td class="p-2">
-                        {% if goal.status == 'locked' %}
-                        <form method="POST" action="/admin/unlock/{{ goal.id }}">
-                            <button type="submit"
-                                class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">
-                                Unlock
-                            </button>
-                        </form>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p class="text-gray-400 text-sm">No goals created yet.</p>
-        {% endif %}
-    </div>
-    {% endfor %}
 
 </div>
 </body>

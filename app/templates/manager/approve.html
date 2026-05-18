@@ -11,6 +11,11 @@
         <h1 class="text-2xl font-bold text-blue-600">Pending Approvals</h1>
         <a href="/manager/dashboard" class="bg-gray-200 px-4 py-2 rounded">Back</a>
     </div>
+    {% if not goal_setting_open %}
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded mb-4 text-sm">
+        Approvals are locked outside the goal-setting window (May-June).
+    </div>
+    {% endif %}
 
     {% if not employee_sheets %}
     <div class="bg-white rounded-lg shadow p-6 text-center text-gray-500">
@@ -64,7 +69,11 @@
                         <input type="number" step="0.01"
                             class="target-input w-24 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                             value="{{ goal.target }}"
-                            data-goal-id="{{ goal.id }}">
+                            data-goal-id="{{ goal.id }}"
+                            {% if goal.is_shared and goal.parent_goal_id %}readonly{% endif %}>
+                        {% if goal.is_shared and goal.parent_goal_id %}
+                        <p class="text-xs text-gray-500 mt-1">Shared recipient target</p>
+                        {% endif %}
                     </td>
                     <td class="p-3">
                         <input type="number" step="0.1" min="10" max="100"
@@ -91,12 +100,14 @@
                     id="approve-btn-{{ sheet.employee.id }}"
                     onclick="approveSheet({{ sheet.employee.id }})"
                     class="px-6 py-2 rounded font-medium bg-gray-300 text-gray-500 cursor-not-allowed transition-colors"
-                    disabled>
+                    {% if not goal_setting_open %}disabled{% else %}disabled{% endif %}>
                     ✓ Approve All & Lock
                 </button>
                 <button
+                    id="reject-btn-{{ sheet.employee.id }}"
                     onclick="rejectSheet({{ sheet.employee.id }})"
-                    class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 font-medium">
+                    class="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 font-medium"
+                    {% if not goal_setting_open %}disabled{% else %}disabled{% endif %}>
                     ✗ Return for Rework
                 </button>
                 <span id="action-msg-{{ sheet.employee.id }}" class="text-sm"></span>
@@ -134,11 +145,22 @@ function getTotal(empId) {
 }
 
 function updateBar(empId) {
+    {% if not goal_setting_open %}
+    const btnLocked = document.getElementById(`approve-btn-${empId}`);
+    const rejectLocked = document.getElementById(`reject-btn-${empId}`);
+    btnLocked.disabled = true;
+    rejectLocked.disabled = true;
+    btnLocked.className = 'px-6 py-2 rounded font-medium bg-gray-300 text-gray-500 cursor-not-allowed transition-colors';
+    rejectLocked.className = 'bg-gray-300 text-gray-500 px-6 py-2 rounded font-medium cursor-not-allowed';
+    return;
+    {% endif %}
+
     const total = getTotal(empId);
     const bar = document.getElementById(`bar-${empId}`);
     const totalEl = document.getElementById(`total-${empId}`);
     const msgEl = document.getElementById(`total-msg-${empId}`);
     const btn = document.getElementById(`approve-btn-${empId}`);
+    const rejectBtn = document.getElementById(`reject-btn-${empId}`);
 
     totalEl.textContent = total;
     bar.style.width = Math.min(total, 100) + '%';
@@ -146,28 +168,37 @@ function updateBar(empId) {
     if (Math.round(total) === 100) {
         bar.className = 'h-3 rounded-full transition-all duration-200 bg-green-500';
         totalEl.className = 'text-3xl font-bold text-green-600';
-        msgEl.textContent = '✓ Ready to approve';
+        msgEl.textContent = '✓ Ready for approve or rework';
         msgEl.className = 'text-xs text-green-600';
         btn.disabled = false;
+        rejectBtn.disabled = false;
         btn.className = 'px-6 py-2 rounded font-medium bg-green-600 text-white hover:bg-green-700 transition-colors cursor-pointer';
+        rejectBtn.className = 'bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 font-medium';
     } else if (total > 100) {
         bar.className = 'h-3 rounded-full transition-all duration-200 bg-red-500';
         totalEl.className = 'text-3xl font-bold text-red-600';
         msgEl.textContent = `Exceeds 100% — reduce by ${(total - 100).toFixed(1)}%`;
         msgEl.className = 'text-xs text-red-500';
         btn.disabled = true;
+        rejectBtn.disabled = true;
         btn.className = 'px-6 py-2 rounded font-medium bg-gray-300 text-gray-500 cursor-not-allowed transition-colors';
+        rejectBtn.className = 'bg-gray-300 text-gray-500 px-6 py-2 rounded font-medium cursor-not-allowed';
     } else {
         bar.className = 'h-3 rounded-full transition-all duration-200 bg-blue-400';
         totalEl.className = 'text-3xl font-bold text-yellow-600';
-        msgEl.textContent = `${(100 - total).toFixed(1)}% remaining`;
+        msgEl.textContent = `${(100 - total).toFixed(1)}% remaining — must be exactly 100%`;
         msgEl.className = 'text-xs text-yellow-600';
         btn.disabled = true;
+        rejectBtn.disabled = true;
         btn.className = 'px-6 py-2 rounded font-medium bg-gray-300 text-gray-500 cursor-not-allowed transition-colors';
+        rejectBtn.className = 'bg-gray-300 text-gray-500 px-6 py-2 rounded font-medium cursor-not-allowed';
     }
 }
 
 async function approveSheet(empId) {
+    {% if not goal_setting_open %}
+    return;
+    {% endif %}
     const goalsData = [];
     const rows = document.querySelectorAll(`#goals-${empId} tr[data-goal-id]`);
     rows.forEach(row => {
@@ -178,6 +209,12 @@ async function approveSheet(empId) {
     });
     const comment = document.getElementById(`comment-${empId}`).value;
     const msgEl = document.getElementById(`action-msg-${empId}`);
+    const total = getTotal(empId);
+    if (Math.round(total) !== 100) {
+        msgEl.textContent = 'Total weightage must be exactly 100% before approve.';
+        msgEl.className = 'text-sm text-red-500';
+        return;
+    }
 
     const res = await fetch(`/manager/approve-sheet-final/${empId}`, {
         method: 'POST',
@@ -196,8 +233,17 @@ async function approveSheet(empId) {
 }
 
 async function rejectSheet(empId) {
+    {% if not goal_setting_open %}
+    return;
+    {% endif %}
     const comment = document.getElementById(`comment-${empId}`).value.trim();
     const msgEl = document.getElementById(`action-msg-${empId}`);
+    const total = getTotal(empId);
+    if (Math.round(total) !== 100) {
+        msgEl.textContent = 'Total weightage must be exactly 100% before rework.';
+        msgEl.className = 'text-sm text-red-500';
+        return;
+    }
 
     if (!comment) {
         msgEl.textContent = 'Please add a comment before returning for rework.';
@@ -206,10 +252,19 @@ async function rejectSheet(empId) {
         return;
     }
 
+    const goalsData = [];
+    const rows = document.querySelectorAll(`#goals-${empId} tr[data-goal-id]`);
+    rows.forEach(row => {
+        const gid = row.dataset.goalId;
+        const target = row.querySelector('.target-input').value;
+        const weightage = row.querySelector('.weightage-input').value;
+        goalsData.push({ id: gid, target, weightage });
+    });
+
     const res = await fetch(`/manager/reject-sheet/${empId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment })
+        body: JSON.stringify({ comment, goals: goalsData })
     });
     const data = await res.json();
 

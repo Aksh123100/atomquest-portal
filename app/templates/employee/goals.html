@@ -26,75 +26,92 @@
     {% if success %}
     <div class="bg-green-100 text-green-600 p-3 rounded mb-4">{{ success }}</div>
     {% endif %}
+    {% if not goal_setting_open %}
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded mb-4 text-sm">
+        Goal creation and edits are locked outside the goal-setting window (May-June).
+    </div>
+    {% endif %}
+    {% if rework_feedback %}
+    <div class="bg-orange-50 border border-orange-200 text-orange-800 p-4 rounded mb-4 text-sm">
+        <p class="font-semibold mb-1">Manager Feedback</p>
+        <p>{{ rework_feedback }}</p>
+    </div>
+    {% endif %}
 
     <!-- Weightage Bar -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
         <div class="flex justify-between mb-1">
-            <span class="text-sm font-medium">Total Weightage</span>
-            <span class="text-sm font-bold {% if total_weightage == 100 %}text-green-600{% else %}text-red-600{% endif %}">
-                {{ total_weightage }}%
+            <span class="text-sm font-medium">Current Goal Sheet Weightage</span>
+            <span class="text-sm font-bold {% if active_total_weightage == 100 %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ active_total_weightage }}%
             </span>
         </div>
         <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="h-3 rounded-full {% if total_weightage == 100 %}bg-green-500{% else %}bg-blue-500{% endif %}"
-                 style="width: {{ [total_weightage, 100]|min }}%"></div>
+            <div class="h-3 rounded-full {% if active_total_weightage == 100 %}bg-green-500{% else %}bg-blue-500{% endif %}"
+                 style="width: {{ [active_total_weightage, 100]|min }}%"></div>
         </div>
-        <p class="text-xs text-gray-500 mt-1">Must reach exactly 100% before submitting</p>
+        <p class="text-xs text-gray-500 mt-1">Only draft/submitted goals are counted. Must reach exactly 100% before submitting.</p>
     </div>
 
     <!-- Add Goal Form -->
-    {% set has_draft = goals|selectattr("status", "equalto", "draft")|list|length > 0 or goals|length == 0 %}
-    {% set all_locked = goals|length > 0 and goals|selectattr("status", "ne", "draft")|list|length == goals|length %}
-
-    {% if not all_locked %}
+    {% if can_add_goal %}
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold mb-4">Add New Goal</h2>
-        <form method="POST" action="/employee/goals/add">
+        <h2 class="text-lg font-semibold mb-4">
+            {% if editable_goal %}Edit Goal{% else %}Add New Goal{% endif %}
+        </h2>
+        <form method="POST" action="{% if editable_goal %}/employee/goals/update/{{ editable_goal.id }}{% else %}/employee/goals/add{% endif %}">
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium mb-1">Goal Title</label>
                     <input type="text" name="title" required
                         class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g. Increase Sales Revenue">
+                        placeholder="e.g. Increase Sales Revenue"
+                        value="{% if editable_goal %}{{ editable_goal.title }}{% endif %}">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Thrust Area</label>
                     <input type="text" name="thrust_area" required
                         class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g. Revenue, Cost, Quality">
+                        placeholder="e.g. Revenue, Cost, Quality"
+                        value="{% if editable_goal %}{{ editable_goal.thrust_area }}{% endif %}">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Unit of Measurement</label>
                     <select name="uom_type" class="w-full border rounded px-3 py-2">
-                        <option value="min">Numeric/% (Higher is better)</option>
-                        <option value="max">Numeric/% (Lower is better)</option>
-                        <option value="timeline">Timeline (Date based)</option>
-                        <option value="zero">Zero based (Zero = Success)</option>
+                        <option value="min" {% if editable_goal and editable_goal.uom_type == 'min' %}selected{% endif %}>Numeric/% (Higher is better)</option>
+                        <option value="max" {% if editable_goal and editable_goal.uom_type == 'max' %}selected{% endif %}>Numeric/% (Lower is better)</option>
+                        <option value="timeline" {% if editable_goal and editable_goal.uom_type == 'timeline' %}selected{% endif %}>Timeline (Date based)</option>
+                        <option value="zero" {% if editable_goal and editable_goal.uom_type == 'zero' %}selected{% endif %}>Zero based (Zero = Success)</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Target</label>
                     <input type="number" name="target" step="0.01" required
                         class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g. 100">
+                        placeholder="e.g. 100"
+                        value="{% if editable_goal %}{{ editable_goal.target }}{% endif %}">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Weightage (%)</label>
                     <input type="number" name="weightage" min="10" max="100" required
                         class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g. 30">
+                        placeholder="e.g. 30"
+                        value="{% if editable_goal %}{{ editable_goal.weightage }}{% endif %}">
                 </div>
             </div>
             <button type="submit" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                Add Goal
+                {% if editable_goal %}Save Changes{% else %}Add Goal{% endif %}
             </button>
+            {% if editable_goal %}
+            <a href="/employee/goals" class="mt-4 inline-block ml-3 bg-gray-200 px-4 py-2 rounded">Cancel</a>
+            {% endif %}
         </form>
     </div>
     {% endif %}
 
     <!-- Goals List -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold mb-4">My Goals ({{ goals|length }}/8)</h2>
+        <h2 class="text-lg font-semibold mb-4">My Goals (Current sheet: {{ active_goals_count }}/8)</h2>
         {% if goals %}
         <table class="w-full text-sm">
             <thead>
@@ -114,8 +131,23 @@
                     <td class="p-3">{{ goal.title }}</td>
                     <td class="p-3">{{ goal.thrust_area }}</td>
                     <td class="p-3">{{ goal.uom_type }}</td>
-                    <td class="p-3">{{ goal.target }}</td>
-                    <td class="p-3">{{ goal.weightage }}%</td>
+                    <td class="p-3">
+                        {{ goal.target }}
+                        {% if goal.is_shared and goal.parent_goal_id %}
+                        <span class="text-xs text-gray-500">(read-only shared target)</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3">
+                        {% if goal.is_shared and goal.parent_goal_id and goal.status == 'draft' and goal_setting_open %}
+                        <form method="POST" action="/employee/goals/shared-weightage/{{ goal.id }}" class="flex items-center gap-2">
+                            <input type="number" name="weightage" value="{{ goal.weightage }}" min="10" max="100" step="0.1"
+                                class="w-20 border rounded px-2 py-1 text-xs">
+                            <button type="submit" class="text-xs bg-blue-600 text-white px-2 py-1 rounded">Update</button>
+                        </form>
+                        {% else %}
+                        {{ goal.weightage }}%
+                        {% endif %}
+                    </td>
                     <td class="p-3">
                         <span class="px-2 py-1 rounded text-xs font-medium
                             {% if goal.status == 'draft' %}bg-yellow-100 text-yellow-700
@@ -124,12 +156,20 @@
                             {% endif %}">
                             {{ goal.status }}
                         </span>
-                        {% if rework_comments.get(goal.id) %}
-                        <p class="text-xs text-orange-600 mt-1">💬 Manager: {{ rework_comments[goal.id] }}</p>
+                        {% if goal.is_shared %}
+                        <p class="text-xs text-indigo-600 mt-1">
+                            Shared KPI{% if goal.parent_goal_id %} (recipient){% else %} (primary owner){% endif %}
+                        </p>
+                        {% endif %}
+                        {% if rework_updates.get(goal.id) %}
+                        <p class="text-xs text-purple-700 mt-1">{{ rework_updates[goal.id] }}</p>
                         {% endif %}
                     </td>
                     <td class="p-3">
-                        {% if goal.status == 'draft' %}
+                        {% if goal.status == 'draft' and goal_setting_open and not (goal.is_shared and goal.parent_goal_id) %}
+                        <a href="/employee/goals?edit_goal_id={{ goal.id }}" class="text-blue-600 hover:underline text-xs mr-2">Edit</a>
+                        {% endif %}
+                        {% if goal.status == 'draft' and not goal.is_shared and goal_setting_open %}
                         <form method="POST" action="/employee/goals/delete/{{ goal.id }}">
                             <button type="submit" class="text-red-500 hover:underline text-xs">Delete</button>
                         </form>
@@ -144,23 +184,17 @@
         {% endif %}
     </div>
 
-    <form method="POST" action="/employee/goals/reset">
-    <button type="submit" class="bg-gray-500 text-white px-4 py-2 rounded text-sm">
-        Reset to Draft (Testing Only)
-    </button>
-</form>
-
     <!-- Submit Button -->
-    {% if goals|selectattr("status", "equalto", "draft")|list|length > 0 %}
+    {% if has_draft_goals and goal_setting_open %}
 <form method="POST" action="/employee/goals/submit">
 
-    {% if rework_comments %}
+    {% if rework_feedback %}
     <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-3">
         <label class="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" name="acknowledged" value="yes"
                 class="mt-1"
                 id="ack-checkbox"
-                onchange="document.getElementById('submit-btn').disabled = !this.checked">
+                onchange="toggleSubmitButton()">
             <span class="text-sm text-orange-700">
                 I have read the manager's feedback and made the necessary changes before resubmitting.
             </span>
@@ -179,7 +213,26 @@
 
 </form>
 {% endif %}
+    {% if goal_setting_open and not has_draft_goals and active_goals_count > 0 %}
+    <div class="bg-blue-50 border border-blue-200 text-blue-700 p-3 rounded text-sm">
+        Your current sheet is already submitted. Wait for manager action or unlock/rework.
+    </div>
+    {% endif %}
 
 </div>
+<script>
+function toggleSubmitButton() {
+    const checkbox = document.getElementById('ack-checkbox');
+    const btn = document.getElementById('submit-btn');
+    if (!checkbox || !btn) return;
+    if (checkbox.checked) {
+        btn.disabled = false;
+        btn.className = 'w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700';
+    } else {
+        btn.disabled = true;
+        btn.className = 'w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed';
+    }
+}
+</script>
 </body>
 </html>

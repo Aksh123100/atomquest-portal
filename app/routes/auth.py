@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 from app.auth import verify_password, create_token, hash_password
+from fastapi import HTTPException
+import os
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -58,6 +60,8 @@ def logout():
 # Temporary route to create test users (we'll remove this later)
 @router.get("/setup")
 def setup(db: Session = Depends(get_db)):
+    if os.getenv("ALLOW_SETUP_ROUTE", "false").lower() != "true":
+        raise HTTPException(status_code=404, detail="Not found")
     from app.auth import hash_password
 
     users = [

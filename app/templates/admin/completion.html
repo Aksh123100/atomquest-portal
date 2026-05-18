@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Completion Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-blue-600">Check-in Completion Dashboard</h1>
+        <a href="/admin/dashboard" class="bg-gray-200 px-4 py-2 rounded">Back</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="GET" action="/admin/completion" class="flex items-center gap-3">
+            <label class="text-sm font-medium">Quarter</label>
+            <select name="quarter" class="border rounded px-3 py-2">
+                {% for q in quarters %}
+                <option value="{{ q }}" {% if q == selected_quarter %}selected{% endif %}>{{ q }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Refresh</button>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-5">
+            <p class="text-sm text-gray-500">Employees Completed ({{ selected_quarter }})</p>
+            <p class="text-3xl font-bold text-green-600">{{ employee_complete_count }} / {{ employee_total }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5">
+            <p class="text-sm text-gray-500">Managers Completed ({{ selected_quarter }})</p>
+            <p class="text-3xl font-bold text-indigo-600">{{ manager_complete_count }} / {{ manager_total }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="p-4 border-b font-semibold">Employee Progress</div>
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="p-3 text-left">Employee</th>
+                    <th class="p-3 text-left">Locked Goals</th>
+                    <th class="p-3 text-left">Check-ins Done</th>
+                    <th class="p-3 text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in employee_rows %}
+                <tr class="border-t">
+                    <td class="p-3">{{ row.employee.name }}</td>
+                    <td class="p-3">{{ row.total }}</td>
+                    <td class="p-3">{{ row.completed }}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-xs font-medium {% if row.done %}bg-green-100 text-green-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                            {% if row.done %}Completed{% else %}Pending{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-4 border-b font-semibold">Manager Progress</div>
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="p-3 text-left">Manager</th>
+                    <th class="p-3 text-left">Team Locked Goals</th>
+                    <th class="p-3 text-left">Comments Done</th>
+                    <th class="p-3 text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in manager_rows %}
+                <tr class="border-t">
+                    <td class="p-3">{{ row.manager.name }}</td>
+                    <td class="p-3">{{ row.total }}</td>
+                    <td class="p-3">{{ row.completed }}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-xs font-medium {% if row.done %}bg-green-100 text-green-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                            {% if row.done %}Completed{% else %}Pending{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>
