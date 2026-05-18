@@ -22,6 +22,11 @@
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Refresh</button>
         </form>
     </div>
+    {% if not quarter_available %}
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded mb-6 text-sm">
+        {{ selected_quarter }} is not open and has no recorded check-in data yet, so completion is shown as 0.
+    </div>
+    {% endif %}
 
     <div class="grid grid-cols-2 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-5">
@@ -52,8 +57,8 @@
                     <td class="p-3">{{ row.total }}</td>
                     <td class="p-3">{{ row.completed }}</td>
                     <td class="p-3">
-                        <span class="px-2 py-1 rounded text-xs font-medium {% if row.done %}bg-green-100 text-green-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
-                            {% if row.done %}Completed{% else %}Pending{% endif %}
+                        <span class="px-2 py-1 rounded text-xs font-medium {% if row.done %}bg-green-100 text-green-700{% elif quarter_available %}bg-yellow-100 text-yellow-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {% if row.done %}Completed{% elif quarter_available %}Pending{% else %}Not Open{% endif %}
                         </span>
                     </td>
                 </tr>
@@ -80,8 +85,8 @@
                     <td class="p-3">{{ row.total }}</td>
                     <td class="p-3">{{ row.completed }}</td>
                     <td class="p-3">
-                        <span class="px-2 py-1 rounded text-xs font-medium {% if row.done %}bg-green-100 text-green-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
-                            {% if row.done %}Completed{% else %}Pending{% endif %}
+                        <span class="px-2 py-1 rounded text-xs font-medium {% if row.done %}bg-green-100 text-green-700{% elif quarter_available %}bg-yellow-100 text-yellow-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {% if row.done %}Completed{% elif quarter_available %}Pending{% else %}Not Open{% endif %}
                         </span>
                     </td>
                 </tr>

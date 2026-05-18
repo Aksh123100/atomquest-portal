@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Queue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-6xl mx-auto space-y-6">
+    <div class="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-amber-700">Email Queue</h1>
+            <p class="text-gray-500">Track queued/sent/failed notifications and dispatch queued messages</p>
+        </div>
+        <a href="/admin/dashboard" class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Back</a>
+    </div>
+
+    {% if error %}
+    <div class="bg-red-100 text-red-700 p-3 rounded">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="bg-green-100 text-green-700 p-3 rounded">{{ success }}</div>
+    {% endif %}
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post" action="/admin/notifications/send">
+            <button class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">Send Queued Emails</button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100">
+            <tr>
+                <th class="text-left p-2">Created</th>
+                <th class="text-left p-2">Recipient</th>
+                <th class="text-left p-2">Subject</th>
+                <th class="text-left p-2">Context</th>
+                <th class="text-left p-2">Status</th>
+                <th class="text-left p-2">Error</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in notifications %}
+            <tr class="border-t align-top">
+                <td class="p-2">{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="p-2">
+                    {% if users.get(item.recipient_user_id) %}
+                        {{ users[item.recipient_user_id].name }} ({{ users[item.recipient_user_id].email }})
+                    {% else %}
+                        Unknown user
+                    {% endif %}
+                </td>
+                <td class="p-2">{{ item.subject }}</td>
+                <td class="p-2">{{ item.context_type or 'system' }}</td>
+                <td class="p-2">
+                    {% if item.status == "sent" %}
+                    <span class="text-green-600 font-semibold">Sent</span>
+                    {% elif item.status == "failed" %}
+                    <span class="text-red-600 font-semibold">Failed</span>
+                    {% else %}
+                    <span class="text-amber-600 font-semibold">Queued</span>
+                    {% endif %}
+                </td>
+                <td class="p-2">{{ item.error_message or '—' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

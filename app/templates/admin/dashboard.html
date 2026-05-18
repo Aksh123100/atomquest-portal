@@ -16,10 +16,14 @@
         </p>
     </div>
 
-    <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-6 text-center">
             <p class="text-3xl font-bold text-blue-600">{{ stats.total_employees }}</p>
             <p class="text-gray-500 mt-1 text-sm">Total Employees</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <p class="text-3xl font-bold text-indigo-600">{{ stats.total_managers }}</p>
+            <p class="text-gray-500 mt-1 text-sm">Total Managers</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6 text-center">
             <p class="text-3xl font-bold text-gray-400">{{ stats.not_started }}</p>
@@ -33,6 +37,14 @@
             <p class="text-3xl font-bold text-green-600">{{ stats.approved }}</p>
             <p class="text-gray-500 mt-1 text-sm">Approved & Locked</p>
         </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <p class="text-3xl font-bold text-rose-600">{{ open_escalations }}</p>
+            <p class="text-gray-500 mt-1 text-sm">Open Escalations</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <p class="text-3xl font-bold text-amber-600">{{ queued_emails }}</p>
+            <p class="text-gray-500 mt-1 text-sm">Queued Emails</p>
+        </div>
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
@@ -41,6 +53,9 @@
             <a href="/admin/employees" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">View All Employees</a>
             <a href="/admin/shared-goals" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Push Shared KPI</a>
             <a href="/admin/completion" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">Completion Dashboard</a>
+            <a href="/admin/analytics" class="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-700">Analytics</a>
+            <a href="/admin/escalations" class="bg-rose-600 text-white px-4 py-2 rounded hover:bg-rose-700">Escalations</a>
+            <a href="/admin/notifications" class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">Email Queue</a>
             <a href="/admin/audit" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Audit Trail</a>
             <a href="/admin/checkin-windows" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Check-in Windows</a>
             <a href="/admin/export" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export CSV</a>

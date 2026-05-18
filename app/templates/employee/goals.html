@@ -144,6 +144,16 @@
                                 class="w-20 border rounded px-2 py-1 text-xs">
                             <button type="submit" class="text-xs bg-blue-600 text-white px-2 py-1 rounded">Update</button>
                         </form>
+                        {% elif goal.is_shared and goal.parent_goal_id and goal.status == 'draft' and not goal_setting_open %}
+                        <div>
+                            {{ goal.weightage }}%
+                            <p class="text-xs text-gray-500">Editable in goal-setting window (May-June)</p>
+                        </div>
+                        {% elif goal.is_shared and goal.parent_goal_id and goal.status != 'draft' %}
+                        <div>
+                            {{ goal.weightage }}%
+                            <p class="text-xs text-gray-500">Editable only while this shared recipient goal is in Draft.</p>
+                        </div>
                         {% else %}
                         {{ goal.weightage }}%
                         {% endif %}

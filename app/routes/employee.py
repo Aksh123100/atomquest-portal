@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Goal, Achievement, CheckIn
 from app.auth import require_employee
 from app.services.goal_service import (
+    QUARTERS,
     validate_goals,
     get_employee_goals,
     get_active_sheet_goals,
@@ -281,12 +282,27 @@ def checkin_page(request: Request, user=Depends(require_employee), db: Session =
     ).all()
     open_quarters = get_open_checkin_quarters(db)
     editable_goal_ids = {g.id for g in goals if not is_shared_recipient_goal(g)}
+    manager_comments = {}
+    if user.manager_id:
+        for goal in goals:
+            comments = (
+                db.query(CheckIn)
+                .filter(
+                    CheckIn.goal_id == goal.id,
+                    CheckIn.manager_id == user.manager_id,
+                    CheckIn.quarter.in_(QUARTERS),
+                )
+                .order_by(CheckIn.created_at.desc())
+                .all()
+            )
+            manager_comments[goal.id] = comments
     return templates.TemplateResponse(request, "employee/checkin.html", {
         "user": user,
         "goals": goals,
         "quarters": ["Q1", "Q2", "Q3", "Q4"],
         "open_quarters": open_quarters,
         "editable_goal_ids": editable_goal_ids,
+        "manager_comments": manager_comments,
         "error": request.query_params.get("error"),
         "success": request.query_params.get("success"),
     })

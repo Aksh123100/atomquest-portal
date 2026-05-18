@@ -102,6 +102,30 @@
             </table>
         </div>
         {% endif %}
+
+        {% if manager_comments.get(goal.id) %}
+        <div class="mt-4 border-t pt-3">
+            <p class="text-sm font-medium mb-2">Manager Comments:</p>
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="p-2 text-left">Quarter</th>
+                        <th class="p-2 text-left">Comment</th>
+                        <th class="p-2 text-left">Saved At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in manager_comments[goal.id] %}
+                    <tr class="border-t">
+                        <td class="p-2">{{ c.quarter }}</td>
+                        <td class="p-2">{{ c.comment }}</td>
+                        <td class="p-2">{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
     </div>
     {% endfor %}
     {% endif %}

@@ -30,7 +30,13 @@
                 <tr class="border-t hover:bg-gray-50">
                     <td class="p-3 text-gray-500">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td class="p-3">#{{ log.goal_id }}</td>
-                    <td class="p-3">{{ log.changed_by }}</td>
+                    <td class="p-3">
+                        {% if users.get(log.changed_by) %}
+                        {{ users[log.changed_by].name }} (#{{ log.changed_by }})
+                        {% else %}
+                        {{ log.changed_by }}
+                        {% endif %}
+                    </td>
                     <td class="p-3">{{ log.field_changed }}</td>
                     <td class="p-3 text-red-500">{{ log.old_value }}</td>
                     <td class="p-3 text-green-600">{{ log.new_value }}</td>

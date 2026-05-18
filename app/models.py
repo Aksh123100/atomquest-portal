@@ -83,3 +83,35 @@ class CheckInWindow(Base):
     is_open = Column(Boolean, default=False)
     opened_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Escalation(Base):
+    __tablename__ = "escalations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    manager_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    goal_id = Column(Integer, ForeignKey("goals.id"), nullable=True)
+    quarter = Column(String, nullable=False)
+    escalation_type = Column(String, nullable=False)  # employee_missed_checkin / manager_missed_review
+    reason = Column(Text, nullable=False)
+    status = Column(String, default="open")  # open / resolved
+    created_at = Column(DateTime, default=datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    channel = Column(String, default="email")  # email
+    subject = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    status = Column(String, default="queued")  # queued / sent / failed
+    context_type = Column(String, nullable=True)  # escalation / reminder / system
+    context_id = Column(Integer, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    sent_at = Column(DateTime, nullable=True)

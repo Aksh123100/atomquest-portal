@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-6xl mx-auto space-y-6">
+    <div class="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-cyan-700">Analytics Dashboard</h1>
+            <p class="text-gray-500">Goal cycle, completion and governance analytics</p>
+        </div>
+        <a href="/admin/dashboard" class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Back</a>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-5 text-center">
+            <p class="text-3xl font-bold text-cyan-700">{{ goal_coverage_pct }}%</p>
+            <p class="text-gray-500 text-sm mt-1">Employees with locked goals</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 text-center">
+            <p class="text-3xl font-bold text-gray-600">{{ funnel.not_started }}</p>
+            <p class="text-gray-500 text-sm mt-1">Not Started</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 text-center">
+            <p class="text-3xl font-bold text-yellow-500">{{ funnel.submitted }}</p>
+            <p class="text-gray-500 text-sm mt-1">Pending Approval</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 text-center">
+            <p class="text-3xl font-bold text-green-600">{{ funnel.locked }}</p>
+            <p class="text-gray-500 text-sm mt-1">Locked</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-3">Quarter Completion Rates</h2>
+        {% if reportable_quarters %}
+        <p class="text-xs text-gray-500 mb-3">Reportable quarters: {{ reportable_quarters|join(', ') }}</p>
+        {% else %}
+        <p class="text-xs text-gray-500 mb-3">No quarter data available yet.</p>
+        {% endif %}
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100">
+            <tr>
+                <th class="text-left p-2">Quarter</th>
+                <th class="text-left p-2">Locked Goals</th>
+                <th class="text-left p-2">Employee Completion</th>
+                <th class="text-left p-2">Manager Review</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in quarter_rows %}
+            <tr class="border-t">
+                <td class="p-2">{{ row.quarter }}</td>
+                {% if row.is_reportable %}
+                <td class="p-2">{{ row.locked_goals }}</td>
+                <td class="p-2">{{ row.employee_completed }} ({{ row.employee_rate }}%)</td>
+                <td class="p-2">{{ row.manager_reviewed }} ({{ row.manager_rate }}%)</td>
+                {% else %}
+                <td class="p-2">0</td>
+                <td class="p-2 text-gray-500">Not Open</td>
+                <td class="p-2 text-gray-500">Not Open</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-3">Top Thrust Areas</h2>
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100">
+                <tr>
+                    <th class="text-left p-2">Thrust Area</th>
+                    <th class="text-left p-2">Goals</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in top_thrust_areas %}
+                <tr class="border-t">
+                    <td class="p-2">{{ row.name }}</td>
+                    <td class="p-2">{{ row.count }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-3">Manager Risk (Open Escalations)</h2>
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100">
+                <tr>
+                    <th class="text-left p-2">Manager</th>
+                    <th class="text-left p-2">Open Escalations</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in manager_risk_rows %}
+                <tr class="border-t">
+                    <td class="p-2">{{ row.manager.name }}</td>
+                    <td class="p-2">{{ row.open_escalations }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

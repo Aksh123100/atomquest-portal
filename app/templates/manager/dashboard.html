@@ -12,7 +12,7 @@
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-6 text-center">
             <p class="text-3xl font-bold text-blue-600">{{ team|length }}</p>
             <p class="text-gray-500 mt-1">Team Members</p>
@@ -20,6 +20,10 @@
         <div class="bg-white rounded-lg shadow p-6 text-center">
             <p class="text-3xl font-bold text-yellow-500">{{ pending_count }}</p>
             <p class="text-gray-500 mt-1">Pending Approvals</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+            <p class="text-3xl font-bold text-rose-600">{{ open_escalations_count }}</p>
+            <p class="text-gray-500 mt-1">Open Escalations</p>
         </div>
     </div>
 
@@ -38,6 +42,9 @@
             </a>
             <a href="/manager/checkin" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
                 Check-ins
+            </a>
+            <a href="/manager/escalations" class="bg-rose-600 text-white px-4 py-2 rounded hover:bg-rose-700">
+                Escalations {% if open_escalations_count > 0 %}({{ open_escalations_count }}){% endif %}
             </a>
             <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
                 Logout

@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from urllib.parse import quote_plus
 from app.database import get_db
-from app.models import Goal, User, CheckIn
+from app.models import Goal, User, CheckIn, Escalation
 from app.auth import require_manager
 from app.services.goal_service import (
+    QUARTERS,
     create_audit_log,
     create_shared_goal_bundle,
     get_open_checkin_quarters,
@@ -44,6 +46,7 @@ def dashboard(request: Request, user=Depends(require_manager), db: Session = Dep
         "user": user,
         "team": team,
         "pending_count": pending_employees,
+        "open_escalations_count": db.query(Escalation).filter(Escalation.manager_id == user.id, Escalation.status == "open").count(),
     })
 
 
@@ -295,11 +298,25 @@ def checkin_page(request: Request, user=Depends(require_manager), db: Session = 
     team_ids = [u.id for u in team]
     goals = db.query(Goal).filter(Goal.employee_id.in_(team_ids), Goal.status == "locked").all()
     open_quarters = get_open_checkin_quarters(db)
+    manager_comments = {}
+    for goal in goals:
+        comments = (
+            db.query(CheckIn)
+            .filter(
+                CheckIn.goal_id == goal.id,
+                CheckIn.manager_id == user.id,
+                CheckIn.quarter.in_(QUARTERS),
+            )
+            .order_by(CheckIn.created_at.desc())
+            .all()
+        )
+        manager_comments[goal.id] = comments
     return templates.TemplateResponse(request, "manager/checkin.html", {
         "user": user,
         "goals": goals,
         "quarters": ["Q1", "Q2", "Q3", "Q4"],
         "open_quarters": open_quarters,
+        "manager_comments": manager_comments,
         "error": request.query_params.get("error"),
         "success": request.query_params.get("success"),
     })
@@ -310,8 +327,8 @@ def save_checkin(
     user=Depends(require_manager),
     db: Session = Depends(get_db),
     goal_id: int = Form(...),
-    quarter: str = Form(...),
-    comment: str = Form(...),
+    quarter: str = Form(default=""),
+    comment: str = Form(default=""),
 ):
     goal = (
         db.query(Goal)
@@ -320,10 +337,21 @@ def save_checkin(
         .first()
     )
     if not goal:
-        return RedirectResponse(url="/manager/checkin?error=Goal not found in your team.", status_code=302)
+        return RedirectResponse(
+            url=f"/manager/checkin?error={quote_plus('Goal not found in your team.')}",
+            status_code=302,
+        )
 
     if quarter not in get_open_checkin_quarters(db):
-        return RedirectResponse(url="/manager/checkin?error=Check-in is allowed only in the active quarter window.", status_code=302)
+        return RedirectResponse(
+            url=f"/manager/checkin?error={quote_plus('Check-in is allowed only in the active quarter window.')}",
+            status_code=302,
+        )
+    if not comment.strip():
+        return RedirectResponse(
+            url=f"/manager/checkin?error={quote_plus('Comment is required before saving.')}",
+            status_code=302,
+        )
 
     existing = db.query(CheckIn).filter(
         CheckIn.goal_id == goal_id,
@@ -331,8 +359,29 @@ def save_checkin(
         CheckIn.manager_id == user.id,
     ).first()
     if existing:
-        existing.comment = comment
+        existing.comment = comment.strip()
     else:
-        db.add(CheckIn(goal_id=goal_id, manager_id=user.id, quarter=quarter, comment=comment))
+        db.add(CheckIn(goal_id=goal_id, manager_id=user.id, quarter=quarter, comment=comment.strip()))
     db.commit()
-    return RedirectResponse(url="/manager/checkin?success=Comment saved.", status_code=302)
+    return RedirectResponse(url=f"/manager/checkin?success={quote_plus('Comment saved.')}", status_code=302)
+
+
+@router.get("/escalations")
+def escalations_page(request: Request, user=Depends(require_manager), db: Session = Depends(get_db)):
+    team = get_team(db, user.id)
+    team_ids = [member.id for member in team]
+    escalations = (
+        db.query(Escalation)
+        .filter(Escalation.manager_id == user.id, Escalation.employee_id.in_(team_ids))
+        .order_by(Escalation.created_at.desc())
+        .limit(200)
+        .all()
+    )
+    employees = {member.id: member for member in team}
+    goals = {goal.id: goal for goal in db.query(Goal).filter(Goal.employee_id.in_(team_ids)).all()} if team_ids else {}
+    return templates.TemplateResponse(request, "manager/escalations.html", {
+        "user": user,
+        "escalations": escalations,
+        "employees": employees,
+        "goals": goals,
+    })
