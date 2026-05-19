@@ -4,9 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
-from app.auth import verify_password, create_token, hash_password
-from fastapi import HTTPException
-import os
+from app.auth import verify_password, create_token
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -55,54 +53,3 @@ def logout():
     response = RedirectResponse(url="/login", status_code=302)
     response.delete_cookie("access_token")
     return response
-
-
-# Temporary route to create test users (we'll remove this later)
-@router.get("/setup")
-def setup(db: Session = Depends(get_db)):
-    if os.getenv("ALLOW_SETUP_ROUTE", "false").lower() != "true":
-        raise HTTPException(status_code=404, detail="Not found")
-
-    created = 0
-
-    manager = db.query(User).filter(User.email == "manager@test.com").first()
-    if not manager:
-        manager = User(
-            name="Rahul Manager",
-            email="manager@test.com",
-            password=hash_password("password123"),
-            role="manager",
-        )
-        db.add(manager)
-        db.flush()
-        created += 1
-
-    admin_user = db.query(User).filter(User.email == "admin@test.com").first()
-    if not admin_user:
-        db.add(
-            User(
-                name="HR Admin",
-                email="admin@test.com",
-                password=hash_password("password123"),
-                role="admin",
-            )
-        )
-        created += 1
-
-    employee = db.query(User).filter(User.email == "employee@test.com").first()
-    if not employee:
-        db.add(
-            User(
-                name="Ak Employee",
-                email="employee@test.com",
-                password=hash_password("password123"),
-                role="employee",
-                manager_id=manager.id,
-            )
-        )
-        created += 1
-    elif employee.manager_id != manager.id:
-        employee.manager_id = manager.id
-
-    db.commit()
-    return {"message": "Setup completed", "created": created}

@@ -20,7 +20,6 @@ from app.services.goal_service import (
     is_goal_setting_open,
 )
 from app.services.escalation_service import run_quarter_escalation_scan
-from app.services.demo_seed_service import seed_demo_data
 from app.services.notification_service import send_queued_emails
 
 router = APIRouter()
@@ -73,25 +72,7 @@ def dashboard(request: Request, user=Depends(require_admin), db: Session = Depen
         "current_quarter": get_scheduled_checkin_quarter(),
         "open_escalations": db.query(Escalation).filter(Escalation.status == "open").count(),
         "queued_emails": db.query(Notification).filter(Notification.status == "queued").count(),
-        "error": request.query_params.get("error"),
-        "success": request.query_params.get("success"),
     })
-
-
-@router.post("/demo-seed")
-def seed_demo_dataset(user=Depends(require_admin), db: Session = Depends(get_db)):
-    try:
-        result = seed_demo_data(db)
-    except ValueError as exc:
-        return RedirectResponse(url=f"/admin/dashboard?error={quote_plus(str(exc))}", status_code=302)
-
-    message = (
-        "Demo dataset ready. "
-        f"Employee #{result['employee_id']}, "
-        f"Secondary employee #{result['secondary_employee_id']}, "
-        f"Manager #{result['manager_id']}."
-    )
-    return RedirectResponse(url=f"/admin/dashboard?success={quote_plus(message)}", status_code=302)
 
 
 @router.get("/audit")

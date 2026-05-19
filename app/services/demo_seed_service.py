@@ -60,22 +60,20 @@ def _upsert_achievement(
     quarter: str,
     actual: float,
     status: str,
-) -> Achievement:
+) -> None:
     achievement = (
         db.query(Achievement)
         .filter(Achievement.goal_id == goal.id, Achievement.quarter == quarter)
         .first()
     )
-    score = calculate_score(goal.uom_type, goal.target, actual)
     if not achievement:
         achievement = Achievement(goal_id=goal.id, quarter=quarter)
         db.add(achievement)
 
     achievement.actual = actual
     achievement.status = status
-    achievement.score = score
+    achievement.score = calculate_score(goal.uom_type, goal.target, actual)
     achievement.updated_at = datetime.utcnow()
-    return achievement
 
 
 def _upsert_checkin(
@@ -85,18 +83,16 @@ def _upsert_checkin(
     manager_id: int,
     quarter: str,
     comment: str,
-) -> CheckIn:
+) -> None:
     checkin = (
         db.query(CheckIn)
         .filter(CheckIn.goal_id == goal_id, CheckIn.manager_id == manager_id, CheckIn.quarter == quarter)
         .first()
     )
     if not checkin:
-        checkin = CheckIn(goal_id=goal_id, manager_id=manager_id, quarter=quarter, comment=comment)
-        db.add(checkin)
-    else:
-        checkin.comment = comment
-    return checkin
+        db.add(CheckIn(goal_id=goal_id, manager_id=manager_id, quarter=quarter, comment=comment))
+        return
+    checkin.comment = comment
 
 
 def _ensure_audit(
@@ -108,7 +104,7 @@ def _ensure_audit(
     old_value: str | None,
     new_value: str | None,
 ) -> None:
-    existing = (
+    exists = (
         db.query(AuditLog)
         .filter(
             AuditLog.goal_id == goal_id,
@@ -119,7 +115,7 @@ def _ensure_audit(
         )
         .first()
     )
-    if existing:
+    if exists:
         return
     db.add(
         AuditLog(
@@ -133,7 +129,7 @@ def _ensure_audit(
     )
 
 
-def _prune_goals(db: Session, *, employee_id: int, keep_titles: set[str]) -> int:
+def _prune_employee_goals(db: Session, *, employee_id: int, keep_titles: set[str]) -> int:
     stale_goals = (
         db.query(Goal)
         .filter(Goal.employee_id == employee_id, ~Goal.title.in_(keep_titles))
@@ -159,34 +155,19 @@ def seed_demo_data(db: Session) -> dict:
     manager = _get_user_by_email(db, MANAGER_EMAIL)
     employee = _get_user_by_email(db, EMPLOYEE_EMAIL)
 
-    all_employees = db.query(User).filter(User.role == "employee").order_by(User.id.asc()).all()
-    if len(all_employees) < 2:
-        raise ValueError("At least two employee accounts are required to demonstrate shared KPI behavior.")
+    employee.manager_id = manager.id
 
-    secondary_employee = next((u for u in all_employees if u.id != employee.id), None)
-    if not secondary_employee:
-        raise ValueError("Unable to find a second employee account for shared KPI seeding.")
-
-    employee_keep_titles = {
+    keep_titles = {
         "Revenue Growth by Enterprise Accounts",
         "Customer Satisfaction Score Improvement",
         "Launch Self-Service Support Portal",
         "Critical Production Incidents",
+        "Department Shared KPI: Operational Efficiency (Owner)",
         "Department Shared KPI: Operational Efficiency",
     }
-    secondary_keep_titles = {
-        "Department Shared KPI: Operational Efficiency",
-        "Regional Sales Win Rate",
-        "Reduce Sales Cycle Time",
-    }
-    removed_employee_goals = _prune_goals(db, employee_id=employee.id, keep_titles=employee_keep_titles)
-    removed_secondary_goals = _prune_goals(db, employee_id=secondary_employee.id, keep_titles=secondary_keep_titles)
+    removed_goals = _prune_employee_goals(db, employee_id=employee.id, keep_titles=keep_titles)
 
-    # Ensure team mapping for manager dashboard metrics.
-    for member in (employee, secondary_employee):
-        member.manager_id = manager.id
-
-    # Keep demo quarter behavior deterministic: Q1 open, Q2-Q4 closed.
+    # Keep quarter visibility deterministic for dashboards.
     for quarter in QUARTERS:
         window = db.query(CheckInWindow).filter(CheckInWindow.quarter == quarter).first()
         is_open = quarter == "Q1"
@@ -197,16 +178,16 @@ def seed_demo_data(db: Session) -> dict:
             window.opened_by = admin.id
             window.updated_at = datetime.utcnow()
 
-    # Shared KPI owner goal on another employee, recipient on demo employee (weightage-editable draft).
+    # Shared KPI modeled as owner + recipient linkage on same employee account.
     shared_owner_goal, shared_owner_created = _upsert_goal(
         db,
-        employee_id=secondary_employee.id,
-        title="Department Shared KPI: Operational Efficiency",
+        employee_id=employee.id,
+        title="Department Shared KPI: Operational Efficiency (Owner)",
         thrust_area="Operational Efficiency",
         uom_type="min",
         target=12.0,
-        weightage=25.0,
-        status="submitted",
+        weightage=15.0,
+        status="locked",
         is_shared=True,
     )
     shared_recipient_goal, shared_recipient_created = _upsert_goal(
@@ -222,7 +203,6 @@ def seed_demo_data(db: Session) -> dict:
         parent_goal_id=shared_owner_goal.id,
     )
 
-    # Employee demo sheet (5 goals total; active draft+submitted = 100).
     revenue_goal, revenue_created = _upsert_goal(
         db,
         employee_id=employee.id,
@@ -230,7 +210,7 @@ def seed_demo_data(db: Session) -> dict:
         thrust_area="Revenue Growth",
         uom_type="min",
         target=1200000.0,
-        weightage=20.0,
+        weightage=25.0,
         status="locked",
     )
     csat_goal, csat_created = _upsert_goal(
@@ -264,29 +244,7 @@ def seed_demo_data(db: Session) -> dict:
         status="draft",
     )
 
-    # Secondary employee goals so manager dashboard has richer team state.
-    secondary_locked_goal, secondary_locked_created = _upsert_goal(
-        db,
-        employee_id=secondary_employee.id,
-        title="Regional Sales Win Rate",
-        thrust_area="Sales Effectiveness",
-        uom_type="min",
-        target=45.0,
-        weightage=50.0,
-        status="locked",
-    )
-    secondary_submitted_goal, secondary_submitted_created = _upsert_goal(
-        db,
-        employee_id=secondary_employee.id,
-        title="Reduce Sales Cycle Time",
-        thrust_area="Operational Efficiency",
-        uom_type="max",
-        target=35.0,
-        weightage=50.0,
-        status="submitted",
-    )
-
-    # Simulate manager inline edits on a locked goal.
+    # Manager inline-edit demo history on locked goal.
     previous_target = revenue_goal.target
     previous_weightage = revenue_goal.weightage
     revenue_goal.target = 1150000.0
@@ -308,13 +266,12 @@ def seed_demo_data(db: Session) -> dict:
         new_value=str(revenue_goal.weightage),
     )
 
-    # Quarterly achievements with mixed statuses.
+    # Employee quarter updates for completion and analytics.
     _upsert_achievement(db, goal=revenue_goal, quarter="Q1", actual=1185000.0, status="completed")
     _upsert_achievement(db, goal=revenue_goal, quarter="Q2", actual=0.0, status="not_started")
     _upsert_achievement(db, goal=csat_goal, quarter="Q1", actual=92.0, status="on_track")
-    _upsert_achievement(db, goal=secondary_locked_goal, quarter="Q1", actual=41.0, status="on_track")
 
-    # Manager review comments history.
+    # Manager review history.
     _upsert_checkin(
         db,
         goal_id=revenue_goal.id,
@@ -329,26 +286,16 @@ def seed_demo_data(db: Session) -> dict:
         quarter="Q1",
         comment="Customer feedback trend improved. Focus on response SLA consistency.",
     )
-    _upsert_checkin(
-        db,
-        goal_id=secondary_locked_goal.id,
-        manager_id=manager.id,
-        quarter="Q1",
-        comment="Progress is visible, but lagging in the west region opportunities.",
-    )
 
-    # Deterministic audit trail for demo narrative.
-    created_goal_flags = [
+    # Deterministic audit trail.
+    for goal, was_created in [
         (revenue_goal, revenue_created),
         (csat_goal, csat_created),
         (timeline_goal, timeline_created),
         (zero_goal, zero_created),
         (shared_owner_goal, shared_owner_created),
         (shared_recipient_goal, shared_recipient_created),
-        (secondary_locked_goal, secondary_locked_created),
-        (secondary_submitted_goal, secondary_submitted_created),
-    ]
-    for goal, was_created in created_goal_flags:
+    ]:
         if was_created:
             _ensure_audit(
                 db,
@@ -427,9 +374,7 @@ def seed_demo_data(db: Session) -> dict:
     db.commit()
     return {
         "employee_id": employee.id,
-        "secondary_employee_id": secondary_employee.id,
         "manager_id": manager.id,
         "admin_id": admin.id,
-        "removed_employee_goals": removed_employee_goals,
-        "removed_secondary_goals": removed_secondary_goals,
+        "removed_goals": removed_goals,
     }

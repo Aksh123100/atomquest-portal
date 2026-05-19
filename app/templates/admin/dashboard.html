@@ -15,12 +15,6 @@
             {% if goal_setting_open %}Goal Setting (May-June){% else %}{{ current_quarter or 'Check-in Phase' }}{% endif %}
         </p>
     </div>
-    {% if error %}
-    <div class="bg-red-100 text-red-700 p-3 rounded mb-6 text-sm">{{ error }}</div>
-    {% endif %}
-    {% if success %}
-    <div class="bg-green-100 text-green-700 p-3 rounded mb-6 text-sm">{{ success }}</div>
-    {% endif %}
 
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-6 text-center">
@@ -64,9 +58,6 @@
             <a href="/admin/notifications" class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700">Email Queue</a>
             <a href="/admin/audit" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Audit Trail</a>
             <a href="/admin/checkin-windows" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Check-in Windows</a>
-            <form method="POST" action="/admin/demo-seed" class="inline">
-                <button type="submit" class="bg-slate-700 text-white px-4 py-2 rounded hover:bg-slate-800">Seed Demo Data</button>
-            </form>
             <a href="/admin/export" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export CSV</a>
             <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</a>
         </div>
