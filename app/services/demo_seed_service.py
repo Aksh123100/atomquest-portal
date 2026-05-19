@@ -9,6 +9,7 @@ from app.services.goal_service import QUARTERS, calculate_score
 ADMIN_EMAIL = "admin@test.com"
 MANAGER_EMAIL = "manager@test.com"
 EMPLOYEE_EMAIL = "employee@test.com"
+SECONDARY_EMPLOYEE_EMAIL = "employee2@test.com"
 
 
 def _get_user_by_email(db: Session, email: str) -> User:
@@ -16,6 +17,10 @@ def _get_user_by_email(db: Session, email: str) -> User:
     if not user:
         raise ValueError(f"Required account not found: {email}")
     return user
+
+
+def _get_optional_user_by_email(db: Session, email: str) -> User | None:
+    return db.query(User).filter(User.email == email).first()
 
 
 def _upsert_goal(
@@ -154,18 +159,30 @@ def seed_demo_data(db: Session) -> dict:
     admin = _get_user_by_email(db, ADMIN_EMAIL)
     manager = _get_user_by_email(db, MANAGER_EMAIL)
     employee = _get_user_by_email(db, EMPLOYEE_EMAIL)
+    employee2 = _get_optional_user_by_email(db, SECONDARY_EMPLOYEE_EMAIL)
 
     employee.manager_id = manager.id
+    if employee2 and employee2.role == "employee":
+        employee2.manager_id = manager.id
 
-    keep_titles = {
+    keep_titles_primary = {
         "Revenue Growth by Enterprise Accounts",
         "Customer Satisfaction Score Improvement",
         "Launch Self-Service Support Portal",
         "Critical Production Incidents",
         "Department Shared KPI: Operational Efficiency (Owner)",
-        "Department Shared KPI: Operational Efficiency",
     }
-    removed_goals = _prune_employee_goals(db, employee_id=employee.id, keep_titles=keep_titles)
+    keep_titles_secondary = {
+        "Department Shared KPI: Operational Efficiency",
+        "Retention Rate Improvement for Managed Accounts",
+        "Close High-Severity Support Tickets Within SLA",
+    }
+    removed_goals = _prune_employee_goals(db, employee_id=employee.id, keep_titles=keep_titles_primary)
+    removed_goals_secondary = 0
+    if employee2 and employee2.role == "employee":
+        removed_goals_secondary = _prune_employee_goals(
+            db, employee_id=employee2.id, keep_titles=keep_titles_secondary
+        )
 
     # Keep quarter visibility deterministic for dashboards.
     for quarter in QUARTERS:
@@ -178,7 +195,7 @@ def seed_demo_data(db: Session) -> dict:
             window.opened_by = admin.id
             window.updated_at = datetime.utcnow()
 
-    # Shared KPI modeled as owner + recipient linkage on same employee account.
+    # Shared KPI modeled as owner + recipient linkage across team members when available.
     shared_owner_goal, shared_owner_created = _upsert_goal(
         db,
         employee_id=employee.id,
@@ -190,9 +207,10 @@ def seed_demo_data(db: Session) -> dict:
         status="locked",
         is_shared=True,
     )
+    recipient_employee_id = employee2.id if employee2 and employee2.role == "employee" else employee.id
     shared_recipient_goal, shared_recipient_created = _upsert_goal(
         db,
-        employee_id=employee.id,
+        employee_id=recipient_employee_id,
         title="Department Shared KPI: Operational Efficiency",
         thrust_area="Operational Efficiency",
         uom_type="min",
@@ -243,6 +261,31 @@ def seed_demo_data(db: Session) -> dict:
         weightage=30.0,
         status="draft",
     )
+    retention_goal = None
+    retention_created = False
+    sla_goal = None
+    sla_created = False
+    if employee2 and employee2.role == "employee":
+        retention_goal, retention_created = _upsert_goal(
+            db,
+            employee_id=employee2.id,
+            title="Retention Rate Improvement for Managed Accounts",
+            thrust_area="Customer Success",
+            uom_type="max",
+            target=92.0,
+            weightage=40.0,
+            status="locked",
+        )
+        sla_goal, sla_created = _upsert_goal(
+            db,
+            employee_id=employee2.id,
+            title="Close High-Severity Support Tickets Within SLA",
+            thrust_area="Operational Excellence",
+            uom_type="timeline",
+            target=90.0,
+            weightage=30.0,
+            status="submitted",
+        )
 
     # Manager inline-edit demo history on locked goal.
     previous_target = revenue_goal.target
@@ -270,6 +313,10 @@ def seed_demo_data(db: Session) -> dict:
     _upsert_achievement(db, goal=revenue_goal, quarter="Q1", actual=1185000.0, status="completed")
     _upsert_achievement(db, goal=revenue_goal, quarter="Q2", actual=0.0, status="not_started")
     _upsert_achievement(db, goal=csat_goal, quarter="Q1", actual=92.0, status="on_track")
+    if retention_goal:
+        _upsert_achievement(db, goal=retention_goal, quarter="Q1", actual=91.0, status="on_track")
+    if shared_recipient_goal.employee_id != employee.id:
+        _upsert_achievement(db, goal=shared_recipient_goal, quarter="Q1", actual=8.0, status="not_started")
 
     # Manager review history.
     _upsert_checkin(
@@ -286,6 +333,14 @@ def seed_demo_data(db: Session) -> dict:
         quarter="Q1",
         comment="Customer feedback trend improved. Focus on response SLA consistency.",
     )
+    if retention_goal:
+        _upsert_checkin(
+            db,
+            goal_id=retention_goal.id,
+            manager_id=manager.id,
+            quarter="Q1",
+            comment="Retention baseline is healthy. Expand upsell playbooks to improve stickiness.",
+        )
 
     # Deterministic audit trail.
     for goal, was_created in [
@@ -295,7 +350,11 @@ def seed_demo_data(db: Session) -> dict:
         (zero_goal, zero_created),
         (shared_owner_goal, shared_owner_created),
         (shared_recipient_goal, shared_recipient_created),
+        (retention_goal, retention_created),
+        (sla_goal, sla_created),
     ]:
+        if not goal:
+            continue
         if was_created:
             _ensure_audit(
                 db,
@@ -374,7 +433,8 @@ def seed_demo_data(db: Session) -> dict:
     db.commit()
     return {
         "employee_id": employee.id,
+        "secondary_employee_id": employee2.id if employee2 and employee2.role == "employee" else None,
         "manager_id": manager.id,
         "admin_id": admin.id,
-        "removed_goals": removed_goals,
+        "removed_goals": removed_goals + removed_goals_secondary,
     }
