@@ -62,18 +62,47 @@ def logout():
 def setup(db: Session = Depends(get_db)):
     if os.getenv("ALLOW_SETUP_ROUTE", "false").lower() != "true":
         raise HTTPException(status_code=404, detail="Not found")
-    from app.auth import hash_password
 
-    users = [
-        User(name="Ak Employee", email="employee@test.com", password=hash_password("password123"), role="employee", manager_id=2),
-        User(name="Rahul Manager", email="manager@test.com", password=hash_password("password123"), role="manager"),
-        User(name="HR Admin", email="admin@test.com", password=hash_password("password123"), role="admin"),
-    ]
+    created = 0
 
-    for u in users:
-        existing = db.query(User).filter(User.email == u.email).first()
-        if not existing:
-            db.add(u)
+    manager = db.query(User).filter(User.email == "manager@test.com").first()
+    if not manager:
+        manager = User(
+            name="Rahul Manager",
+            email="manager@test.com",
+            password=hash_password("password123"),
+            role="manager",
+        )
+        db.add(manager)
+        db.flush()
+        created += 1
+
+    admin_user = db.query(User).filter(User.email == "admin@test.com").first()
+    if not admin_user:
+        db.add(
+            User(
+                name="HR Admin",
+                email="admin@test.com",
+                password=hash_password("password123"),
+                role="admin",
+            )
+        )
+        created += 1
+
+    employee = db.query(User).filter(User.email == "employee@test.com").first()
+    if not employee:
+        db.add(
+            User(
+                name="Ak Employee",
+                email="employee@test.com",
+                password=hash_password("password123"),
+                role="employee",
+                manager_id=manager.id,
+            )
+        )
+        created += 1
+    elif employee.manager_id != manager.id:
+        employee.manager_id = manager.id
 
     db.commit()
-    return {"message": "Test users created"}
+    return {"message": "Setup completed", "created": created}
