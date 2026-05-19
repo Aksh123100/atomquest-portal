@@ -1,88 +1,124 @@
 ---
 title: AtomQuest Portal
-emoji: 🚀
+emoji: ⚡
 colorFrom: blue
 colorTo: purple
 sdk: docker
 pinned: false
 ---
 
-# AtomQuest Portal
+# ⚡ AtomQuest Portal
 
-AtomQuest Portal is a role-based KPI and quarterly performance tracking system for **employees**, **managers**, and **admins**.
+> **🌐 Live Demo → [https://aksh190-atomquest-portal.hf.space](https://aksh190-atomquest-portal.hf.space)**
 
-It supports end-to-end goal lifecycle management: goal drafting, approval workflow, check-ins, completion visibility, audit trail, escalations, and queued email notifications.
+A role-based KPI and quarterly performance tracking system built with FastAPI — supporting the full goal lifecycle from drafting to completion analytics, across three distinct roles: **Employee**, **Manager**, and **Admin**.
 
-## Key Features
+---
 
-- **Role-based access** (employee / manager / admin) with JWT cookie auth.
-- **Goal setting workflow** with constraints (max goals, weightage rules, submission/approval flow).
-- **Manager review flow** for approvals, rework comments, and quarter check-in comments.
-- **Employee check-ins** with achievement scoring across quarters.
-- **Admin controls**:
-  - completion dashboard
-  - analytics dashboard
-  - escalation center
-  - email queue dispatch
-  - audit trail
-  - check-in window toggles
-  - CSV export
-- **Escalation engine** for missed check-ins / missed manager reviews.
-- **Notification queue** with SMTP-backed send flow.
+## 🧭 What It Does
 
-## Tech Stack
+AtomQuest Portal digitizes the entire performance management cycle inside an organization:
 
-- **Backend:** FastAPI
-- **ORM/DB:** SQLAlchemy + SQLite/PostgreSQL
-- **Frontend:** Jinja2 templates + Tailwind CDN
-- **Auth:** JWT + passlib bcrypt
-- **Deploy:** Docker (Hugging Face Spaces compatible)
+- Employees draft and submit KPI goals with weightage and thrust area classification
+- Managers review, approve, request rework, and submit quarterly check-in comments
+- Admins oversee completion dashboards, escalations, audit trails, and email dispatch
 
-## Project Structure
+Everything is tracked — every status change, every comment, every missed deadline.
 
-```text
-app/
-  main.py
-  auth.py
-  database.py
-  models.py
-  routes/
-    auth.py
-    employee.py
-    manager.py
-    admin.py
-  services/
-    goal_service.py
-    escalation_service.py
-    notification_service.py
-  templates/
-    admin/
-    manager/
-    employee/
-    shared/
+---
+
+## ✨ Features
+
+### 👤 Employee
+- Draft goals with `title`, `thrust area`, `UOM type` (min / max / zero / timeline), `target`, and `weightage`
+- Submit goals for manager review
+- Log quarterly achievements (Q1–Q4) during open check-in windows
+- View goal status and score progression
+
+### 🧑‍💼 Manager
+- Approve or send goals back for rework with comments
+- Add quarterly check-in comments per goal per employee
+- View and manage shared (cascaded) goals
+- Track team performance and escalation flags
+
+### 🛡️ Admin
+- **Completion Dashboard** — org-wide goal completion status
+- **Analytics Dashboard** — performance metrics across teams
+- **Escalation Center** — flag missed check-ins and overdue reviews
+- **Email Queue** — dispatch queued SMTP notifications
+- **Audit Trail** — full field-level change history per goal
+- **Check-in Window Control** — toggle active quarter windows
+- **CSV Export** — export goal data for reporting
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Tech |
+|---|---|
+| Backend | FastAPI |
+| ORM / DB | SQLAlchemy + SQLite (dev) / PostgreSQL (prod) |
+| Frontend | Jinja2 templates + Tailwind CSS (CDN) |
+| Auth | JWT cookies + passlib bcrypt |
+| Deploy | Docker (Hugging Face Spaces compatible) |
+
+---
+
+## 📁 Project Structure
+
+```
+atomquest-portal/
+├── app/
+│   ├── main.py
+│   ├── auth.py
+│   ├── database.py
+│   ├── models.py
+│   ├── routes/
+│   │   ├── auth.py
+│   │   ├── employee.py
+│   │   ├── manager.py
+│   │   └── admin.py
+│   ├── services/
+│   │   ├── goal_service.py
+│   │   ├── escalation_service.py
+│   │   ├── notification_service.py
+│   │   └── demo_seed_service.py
+│   └── templates/
+│       ├── admin/
+│       ├── manager/
+│       ├── employee/
+│       └── shared/
+├── static/
+├── Dockerfile
+├── requirements.txt
+└── .env
 ```
 
-## Local Setup
+---
 
-### 1. Install dependencies
+## 🚀 Local Setup
+
+### 1. Clone & install
 
 ```bash
+git clone https://github.com/Aksh123100/atomquest-portal.git
+cd atomquest-portal
 pip install -r requirements.txt
 ```
 
 ### 2. Configure environment
 
-Create a `.env` file at project root:
+Create a `.env` file at the project root:
 
 ```env
 DATABASE_URL=sqlite:///./atomquest.db
 SECRET_KEY=replace-with-a-long-random-secret
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 
-# Optional (for /setup route during demo seeding)
-ALLOW_SETUP_ROUTE=false
+# Enable demo user seeding (disable after first run)
+ALLOW_SETUP_ROUTE=true
 
-# Optional (for email queue dispatch)
+# Optional — SMTP email dispatch
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
@@ -90,80 +126,105 @@ SMTP_PASSWORD=
 SMTP_FROM=
 ```
 
-### 3. Run app
+### 3. Run
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Open: `http://127.0.0.1:8000/login`
+Open `http://127.0.0.1:8000/login`
 
-## Docker Run
+### 4. Seed demo users
+
+With `ALLOW_SETUP_ROUTE=true`, hit:
+
+```
+GET /setup
+```
+
+Then set `ALLOW_SETUP_ROUTE=false` to lock it down.
+
+---
+
+## 🐳 Docker
 
 ```bash
 docker build -t atomquest-portal .
+
 docker run --rm -p 7860:7860 \
   -e DATABASE_URL="sqlite:///./atomquest.db" \
   -e SECRET_KEY="replace-me" \
   atomquest-portal
 ```
 
-## Demo/Test User Seeding
+---
 
-The app has a temporary setup route:
+## 🌐 Environment Variables
 
-- `GET /setup` creates test users
-- it only works when `ALLOW_SETUP_ROUTE=true`
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | ✅ | — | SQLite or PostgreSQL connection string |
+| `SECRET_KEY` | ✅ | — | JWT signing secret (make it long and random) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | ❌ | `60` | Token lifetime in minutes |
+| `ALLOW_SETUP_ROUTE` | ❌ | `false` | Enables `/setup` for demo seeding |
+| `SMTP_HOST` | ❌ | — | SMTP server hostname |
+| `SMTP_PORT` | ❌ | `587` | SMTP port |
+| `SMTP_USER` | ❌ | — | SMTP username |
+| `SMTP_PASSWORD` | ❌ | — | SMTP password |
+| `SMTP_FROM` | ❌ | — | Sender email address |
 
-Recommended flow:
-
-1. Set `ALLOW_SETUP_ROUTE=true`
-2. Call `/setup` once
-3. Set `ALLOW_SETUP_ROUTE=false` again
-
-## Environment Variables
-
-| Variable | Required | Purpose |
-|---|---|---|
-| `DATABASE_URL` | Yes | DB connection string (SQLite/Postgres) |
-| `SECRET_KEY` | Yes | JWT signing secret |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Token expiry in minutes (default `60`) |
-| `ALLOW_SETUP_ROUTE` | No | Enables `/setup` route when `true` |
-| `SMTP_HOST` | No | SMTP host for queued email send |
-| `SMTP_PORT` | No | SMTP port (default `587`) |
-| `SMTP_USER` | No | SMTP username |
-| `SMTP_PASSWORD` | No | SMTP password |
-| `SMTP_FROM` | No | Sender email |
-
-## PostgreSQL Example
+### PostgreSQL Example
 
 ```env
 DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@HOST:5432/DBNAME?sslmode=require
 ```
 
-If password has special characters (`@`, `#`, `/`, `%`, `:`), URL-encode it.
+> If your password contains special characters (`@`, `#`, `/`, `%`, `:`), URL-encode them.
 
-## Common Troubleshooting
+---
 
-- **Login fails for test users**
-  - `/setup` was not run (or `ALLOW_SETUP_ROUTE` is false)
-  - app points to a different DB than expected
-- **`/setup` fails**
-  - check deployment logs and DB connectivity
-  - verify `DATABASE_URL` format and DB user permissions
-- **Postgres connection error**
-  - ensure `DATABASE_URL` is uppercase and correctly formatted
-  - ensure `psycopg2-binary` is installed
-- **Email sending fails**
-  - SMTP env vars missing/invalid
-  - queued items stay in `queued` or move to `failed`
+## 🔧 Troubleshooting
 
-## Hackathon Demo Checklist
+| Issue | Fix |
+|---|---|
+| Login fails for test users | Run `/setup` with `ALLOW_SETUP_ROUTE=true` first |
+| `/setup` route not found | Check that `ALLOW_SETUP_ROUTE=true` is set |
+| PostgreSQL connection error | Verify `DATABASE_URL` format and that `psycopg2-binary` is installed |
+| Email sending fails | Check SMTP env vars; failed sends stay in `queued` or move to `failed` state |
+| App starts but DB is empty | Check `DATABASE_URL` points to the right file/host |
 
-1. `DATABASE_URL` and `SECRET_KEY` configured
-2. Role logins working (employee/manager/admin)
-3. One complete role flow rehearsed:
-   - employee goal + submit
-   - manager approve/check-in
-   - admin completion/analytics/escalation view
-4. `ALLOW_SETUP_ROUTE=false` before final demo
+---
+
+## 📊 Data Model (Key Entities)
+
+```
+User ──< Goal ──< Achievement (Q1–Q4 scores)
+              └─< AuditLog   (field-level change history)
+              └─ CheckIn     (manager quarter comments)
+
+CheckInWindow  (admin-controlled per-quarter toggle)
+Notification   (email queue with status tracking)
+```
+
+Goal statuses: `draft → submitted → approved → locked`  
+Achievement statuses: `not_started → on_track → completed`
+
+---
+
+## 📋 Demo Checklist
+
+Before a live demo, verify:
+
+- [ ] `DATABASE_URL` and `SECRET_KEY` are set
+- [ ] `/setup` was called and all three role logins work
+- [ ] `ALLOW_SETUP_ROUTE=false` is set for the final run
+- [ ] One full role flow rehearsed:
+  - **Employee** — draft a goal → submit
+  - **Manager** — approve → add check-in comment
+  - **Admin** — view completion dashboard → trigger escalation check
+
+---
+
+## 🧑‍💻 Author
+
+Built by [Aksh Singhal](https://github.com/Aksh123100)
