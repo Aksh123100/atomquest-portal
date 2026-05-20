@@ -50,6 +50,18 @@ Everything is tracked — every status change, every comment, every missed deadl
 - **Check-in Window Control** — toggle active quarter windows
 - **CSV Export** — export goal data for reporting
 
+## 🔑 Demo Credentials
+
+All accounts use the same password: `password123`
+
+| Email | Role | Access |
+|---|---|---|
+| admin@test.com | Admin / HR | Completion dashboard, audit trail, escalations, export |
+| manager@test.com | Manager | Approve goals, team check-ins, shared goals |
+| employee@test.com | Employee | Create goals, quarterly check-in |
+| employee2@test.com | Employee | Create goals, quarterly check-in |
+
+> These accounts are pre-seeded automatically on startup. No need to call `/setup` manually.
 ---
 
 ## 🛠️ Tech Stack
